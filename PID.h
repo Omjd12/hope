@@ -1,14 +1,12 @@
-#ifndef PI_D
-#define PI_D
-
-class PID{
-public:
+#ifndef PID_H
+#define PID_H
+//#include "Angle.h"
+class pid {
+  private:
+  float derivative, integral, previousError, target;
+  int8_t output;
   float kp, ki, kd;
-
-  PID(float p, float i, float d){
-    setConstant(p, i, d);
-    reset();
-  }
+  long dt;
 
   void setConstant(float p, float i, float d) {
     if (p < 0 || i < 0 || d < 0) {
@@ -21,25 +19,27 @@ public:
       kd = d;
     }
   }
+public:
+  pid(float p, float i, float d) {
+    setConstant(p, i, d);
+    reset();
+  }
 
-   float compute(float input, float target = 0.0){
-    error = target - input;
-    derivative = error-previousError;
+  void reset() {
+  integral = derivative = previousError = 0; // just to avoid garbage values.
+  }
+  /*void setTarget(float target) {
+    this->target = target;
+  }*/
+  
+  uint16_t compute(float &error, unsigned long &dt) {
+    derivative = error - previousError;
     integral += error;
+    previousError = error;
 
-    float value = kp * error + ki * integral + kd * derivative;
-    return value;
+    output = kp * error + ki * integral + (kd * derivative * 1000000) / (float)dt;  // here we recieved the value of dt in microseconds so multiply with 1000000
+    return constrain(output, -55, 55);
   }
-
-  void reset(){
-    error = integral = derivative = previousError = 0;
-  }
-
-
-
-
-private:
-  float error, derivative, integral, previousError;
 };
 
 #endif
