@@ -3,51 +3,48 @@
 #include "DRIVE.h"
 #include <Wire.h>
 #define pass (void)0
-
-
-//MOTOR m(26, 27, 25, 33);
-//PID p(0.1, 0.1, 0.1);
+mpu m;
+pid p(1, 0, 0);
+motor a(26, 27, 25, 33);
+unsigned long dt =0;
+float target = 0.0;
+float angle;
 unsigned long now = 0;
-unsigned long last_measured = 0;
-uint8_t n = 0;
-mpu d;
+unsigned long lastMeasured = 0;
+bool iniT = false;
+bool dmpInit = false;
+float error = 0;
+int8_t output;
 void setup() {
+  a.setPWM(13, 32);  // setting up pwm pins
   Serial.begin(115200);
-  //m.setPWM(13, 32);
-  Wire.begin();
-  if (!d.begin()) {
-    Serial.print("mpu connected");
-    d.caliberate();
-    Serial.println("mpu caliberated");
-  } else {
-    Serial.print("failed to connect mpu");
+  if (m.initialize()) { // initializing mpu
+    Serial.println("mpu initialized");
+    iniT = true;
   }
-  delay(10000);
+  else{
+    Serial.println("terminated");
+    while(1);
+  }
+  if (iniT) {
+    dmpInit = m.dmpInit(); // initializing dmp 
+  }
+  m.caliberate(dt);
+  p.reset(); // refer the control.h library
+ // p.setTarget(target);
 }
 
 void loop() {
-
-  if (now - last_measured > 0000) {
-
-    if (d.check()) {
-      d.update();
-      last_measured = micros();
-    } else {
-      Serial.println("failed to update");
-    }
-
-    if (d.check()) {
-      d.get_dt(now - micros());
-      //int16_t output = (int16_t)p.compute(d.getz());
-      //m.Run(output);
-      Serial.println(d.getz());
-      
-    } else {
-      Serial.println("failed to get value");
-      //m.stop();
-    }
-  } else {
-    pass;
-  }
-  now = micros();
+  if ( m.check()) {
+    now = micros();
+    dt = now - lastMeasured;
+    if (now - lastMeasured >= 10000) {
+      m.update();
+      lastMeasured = micros();
+    } else pass;
+  } else pass;
+    angle = m.getYaw();
+    error = angle - target;
+    output = p.compute(error, dt);
+    a.forward(output, error);
 }
