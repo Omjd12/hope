@@ -1,5 +1,5 @@
-#ifndef ANGLE_H
-#define ANGLE_H
+#ifndef DIRN_H
+#define DIRN_H
 #define pass (void)0
 #include <MPU6050_6Axis_MotionApps20.h>
 #include <I2Cdev.h>
